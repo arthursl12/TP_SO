@@ -28,7 +28,7 @@ GNU's definitions of the attributes (http://www.gnu.org/software/    libc/manual
 Called when the system asks the FS for the attributes of a specific file
 
 Receives filepath and stat datatype
-Returns 0 on sucess, -1 on failure
+Returns 0 on success, -1 otherwise
 */
 static int do_getattr(const char *path, struct stat *st){
     printf( "[getattr] Called\n" );
@@ -58,4 +58,63 @@ static int do_getattr(const char *path, struct stat *st){
 	return 0;
 }
 
+/*
+Called when the system asks the FS to list the files and subdirectories ('ls')
+
+Receives directory path, buffer to fill in the requested files under it, filler to fill the buffer provided by FUSE
+Returns 0 on success, -1 otherwise
+*/
+
+static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi ){
+    printf( "--> Getting The List of Files of %s\n", path );
+    
+    // Current directory and parent directory as available entries
+    // Known Unix convention
+    filler(buffer, ".", NULL, 0 );      //Current
+	filler(buffer, "..", NULL, 0 );     //Parent
+    
+        
+    if ( strcmp( path, "/" ) == 0 ){
+        // Root directory
+        // Two example files in the initial example
+		filler( buffer, "file54", NULL, 0 );
+		filler( buffer, "file349", NULL, 0 );
+	}
+}
+
+/*
+Allows the system to read the content of a specific file
+
+Receives file path, buffer is the chunk which the system is interested in, size of said chunk, offset is where we'll start reading
+Returns how many bytes have been successfully read
+*/
+static int do_read( const char *path, char *buffer, size_t size, off_t offset, struct fuse_file_info *fi ){
+    char file54Text[] = "Hello World From File54!";
+	char file349Text[] = "Hello World From File349!";
+	char *selectedText = NULL; // Content to be returned to the system
+
+    if ( strcmp(path, "/file54" ) == 0 ){
+		selectedText = file54Text;
+	}else if ( strcmp(path, "/file349" ) == 0 ){
+		selectedText = file349Text;
+	}else{
+	    // Error: could not find the requested file
+		return -1;
+    }
+    
+    // Copy content to buffer and send it to the system
+    memcpy( buffer, selectedText + offset, size );
+	return strlen( selectedText ) - offset;
+}
+
+
+static struct fuse_operations operations = {
+    .getattr	= do_getattr,
+    .readdir	= do_readdir,
+    .read	= do_read,
+};
+
+int main( int argc, char *argv[] ){
+	return fuse_main( argc, argv, &operations, NULL );
+}
 
