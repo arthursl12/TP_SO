@@ -1,3 +1,12 @@
+## TODO's:
+* Implementar tutorial 2
+* Implementar uma forma do FUSE enviar pacotes via rede
+* Estabelecer uma conexão entre duas máquinas virtuais (postar no readme os passos)
+* Criar um protocolo de rede para enviar as informações do sistema de arquivos
+* Integrar o sistema de arquivos criado com o protocolo de rede
+* Estabeler diretrizes para transformar o sistema de arquivos criado num módulo do kernel
+* Montar o relatório 2 com o progresso
+
 ## Requisitos
 Para compilar e executar, precisamos de duas bibliotecas do FUSE:
 - fuse  
