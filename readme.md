@@ -38,7 +38,7 @@ Dar um CTRL+C no terminal que montou o sistema de arquivos o desmonta (forçosam
 
 ## Referências
 [Writing a Simple Filesystem Using FUSE in C (Tutorial pt.1)](https://www.maastaar.net/fuse/linux/filesystem/c/2016/05/21/writing-a-simple-filesystem-using-fuse/)  
-[Writing Less Simple, Yet Stupid Filesystem Using FUSE in C (Tutorial pt.2)](https://www.maastaar.net/fuse/linux/filesystem/c/2019/09/28/writing-less-simple-yet-stupid-filesystem-using-FUSE-in-C/)
+[Writing Less Simple, Yet Stupid Filesystem Using FUSE in C (Tutorial pt.2)](https://www.maastaar.net/fuse/linux/filesystem/c/2019/09/28/writing-less-simple-yet-stupid-filesystem-using-FUSE-in-C/)  
 [Materiais e Links Úteis](https://docs.google.com/document/d/18UsBey2D0xK0Cs2s6lnUbjN2LXHZ2yL9lT4s0OJkb68/edit)
 
 
