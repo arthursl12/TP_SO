@@ -1,6 +1,10 @@
+## Data de Entrega: 26/07 (segunda-feira)
 ## TODO's:
 * (OK) Implementar tutorial 1
-* Implementar tutorial 2
+* (OK) Implementar tutorial 2
+* Implementar estruturas para que o sistema de arquivos lide com arquivos e 
+pastas numa árvore e não apenas na pasta raiz
+* Implementar uma forma de persistência das informações do sistema de arquivos
 * Implementar uma forma do FUSE enviar pacotes via rede
 * Estabelecer uma conexão entre duas máquinas virtuais (postar no readme os passos)
 * Criar um protocolo de rede para enviar as informações do sistema de arquivos
@@ -32,7 +36,11 @@ Agora, basta ir, num outro terminal, para onde foi montado e testar os (poucos) 
 
     cd [mount point]  
     ls
-    cat file349
+    mkdir foo1
+    echo "blablabla" > foo2.txt
+    cat foo2.txt
+    cd foo1
+    echo "blabla2" > foo3.txt
 
 Dar um CTRL+C no terminal que montou o sistema de arquivos o desmonta (forçosamente).
 

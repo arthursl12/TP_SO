@@ -7,10 +7,34 @@
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
-/* Based on tutorial:
+#include "ds_manip.h"
+
+/* Based on tutorials:
 https://www.maastaar.net/fuse/linux/filesystem/c/2016/05/21/writing-a-simple-filesystem-using-fuse/
+https://www.maastaar.net/fuse/linux/filesystem/c/2019/09/28/writing-less-simple-yet-stupid-filesystem-using-FUSE-in-C/
+
+Notes: 
+1) The filesystem is not persistant yet. So as of now it is an 
+in-memory only system, meaning that everything stored within it (including
+directories and files created) will be lost once it is unmounted.
+2) The system is only capable of handling root-level objects (for now). In order
+to use subdirectories and such, more complex data structures should be created.
 */
+
+/*
+Data Structures to store filesystem information.
+For now only simple arrays
+*/
+// extern char dir_list[ 256 ][ 256 ]; 	// Name of directories created
+// extern int curr_dir_idx = -1;
+
+// extern char files_list[ 256 ][ 256 ];	// Name of files created
+// extern int curr_file_idx = -1;
+
+// extern char files_content[ 256 ][ 256 ];	// Content of files created
+// extern int curr_file_content_idx = -1;
 
 
 /*
@@ -36,10 +60,11 @@ GNU's definitions of the attributes
 */
 
 /*
-Called when the system asks the FS for the attributes of a specific file
+Called when the system asks the FS for the attributes of a specific file or 
+directory
 
 Receives filepath and stat datatype
-Returns 0 on success, -1 otherwise
+Returns 0 on success, -ENOENT when it doesn't exist
 */
 static int do_getattr(const char *path, struct stat *st){
     printf( "[getattr] Called\n" );
@@ -57,17 +82,20 @@ static int do_getattr(const char *path, struct stat *st){
 	//      	Also defines Unix permission bits
 	// st_nlink: qtd of hardlinks to file/directory
 	// st_size: filesize in bytes
-	if (strcmp(path, "/") == 0 ){
-	    // Root directory
+	if (strcmp(path, "/") == 0 || is_dir( path ) == 1){
+	    // Root or any directory
 		st->st_mode = S_IFDIR | 0755;   // It's a directory | permission bits
 		st->st_nlink = 2; // Why "two" hardlinks instead of "one"? 
 						  // The answer is here:
 						  // http://unix.stackexchange.com/a/101536
-	}else{
-	    // All files other than root directory
-		st->st_mode = S_IFREG | 0644;   // It's a regular file | permission bits
+	}else if (is_file( path ) == 1){
+		// Files
+		st->st_mode = S_IFREG | 0644;
 		st->st_nlink = 1;
 		st->st_size = 1024;
+	}else{
+		// There is no such file or directory
+		return -ENOENT;
 	}
 	return 0;
 }
@@ -92,10 +120,16 @@ static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
         
     if ( strcmp( path, "/" ) == 0 ){
         // Root directory
-        // Two example files in the initial example
-		filler( buffer, "file54", NULL, 0 );
-		filler( buffer, "file349", NULL, 0 );
+
+		// Adds all directories to the buffer
+		for (int curr_idx = 0; curr_idx <= curr_dir_idx; curr_idx++)
+			filler( buffer, dir_list[ curr_idx ], NULL, 0 );
+		
+		// Adds all files to the buffer
+		for (int curr_idx = 0; curr_idx <= curr_file_idx; curr_idx++)
+			filler( buffer, files_list[ curr_idx ], NULL, 0 );
 	}
+	return 0;
 }
 
 /*
@@ -103,32 +137,66 @@ Allows the system to read the content of a specific file
 
 Receives file path, buffer is the chunk which the system is interested in, 
 size of said chunk, offset is where we'll start reading
-Returns how many bytes have been successfully read
+
+Returns how many bytes have been successfully read.
+Returns -1 if file is not found
 */
 static int do_read(const char *path, char *buffer, size_t size, 
 				   off_t offset, struct fuse_file_info *fi ){
-    char file54Text[] = "Hello World From File54!";
-	char file349Text[] = "Hello World From File349!";
-	char *selectedText = NULL; // Content to be returned to the system
 
-    if ( strcmp(path, "/file54" ) == 0 ){
-		selectedText = file54Text;
-	}else if ( strcmp(path, "/file349" ) == 0 ){
-		selectedText = file349Text;
-	}else{
-	    // Error: could not find the requested file
+	int file_idx = get_file_index( path );
+	if (file_idx == -1)
 		return -1;
-    }
-    
-    // Copy content to buffer and send it to the system
-    memcpy( buffer, selectedText + offset, size );
-	return strlen( selectedText ) - offset;
+
+	// Copy content to buffer and send it to the system
+	char *content = files_content[ file_idx ];
+	memcpy(buffer, content + offset, size);
+	return strlen(content) - offset;
 }
+
+/*
+Creates a new directory with given path
+Returns 0 on sucess.
+*/
+static int do_mkdir(const char *path, mode_t mode){
+	path++;
+	add_dir( path );
+	
+	return 0;
+}
+
+/*
+Creates a new file with given path
+Returns 0 on sucess.
+*/
+static int do_mknod( const char *path, mode_t mode, dev_t rdev ){
+	// mode specifies the permission bits and type of the new file
+	// rdev should be specified if the new file is a device file
+	path++;
+	add_file( path );
+	
+	return 0;
+}
+
+/*
+Writes given content in buffer to the start of file in given path.
+Returns the number of written bytes
+*/
+static int do_write(const char *path, const char *buffer, 
+					size_t size, off_t offset, struct fuse_file_info *info){
+	write_to_file( path, buffer );
+	
+	return size;
+}
+
 
 static struct fuse_operations operations = {
     .getattr	= do_getattr,
     .readdir	= do_readdir,
-    .read	= do_read,
+	.read		= do_read,
+    .mkdir		= do_mkdir,
+    .mknod		= do_mknod,
+    .write		= do_write,
 };
 
 int main( int argc, char *argv[] ){
