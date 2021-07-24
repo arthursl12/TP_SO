@@ -7,10 +7,14 @@ pastas numa árvore e não apenas na pasta raiz
 * Implementar uma forma de persistência das informações do sistema de arquivos
 * Implementar uma forma do FUSE enviar pacotes via rede
 * (OK) Estabelecer uma conexão entre duas máquinas virtuais (postar no readme os passos)
-* Criar um protocolo de rede para enviar as informações do sistema de arquivos
+* (WIP) Criar um protocolo de rede para enviar as informações do sistema de arquivos
 * Integrar o sistema de arquivos criado com o protocolo de rede
 * Estabeler diretrizes para transformar o sistema de arquivos criado num módulo do kernel
-* Montar o relatório 2 com o progresso
+* (OK) Montar o relatório 2 com o progresso
+* Escrever o relatório 2 com o progresso
+
+# Link Relatório 2
+[Link Google Docs](https://docs.google.com/document/d/1mNbMBEn-A_RpxZOaDYWwu5ltN8Jpp0l3cipzWPbyqL8/edit?usp=sharing)
 
 # Índice
 1. [TODO](#todos)
