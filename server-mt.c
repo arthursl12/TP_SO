@@ -51,7 +51,7 @@ int main(int argc, char **argv){
     }
 
     struct sockaddr_storage storage;
-    if (0 != server_sockaddr_init("v4", argv[2], &storage)) {
+    if (0 != server_sockaddr_init("v4", argv[1], &storage)) {
         usage(argc, argv);
     }
 
