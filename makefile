@@ -2,7 +2,7 @@ CFLAGS = -D_FILE_OFFSET_BITS=64
 
 all:
 	gcc -Wall -c packets.c
-	gcc -Wall client.c packets.o -o client
+	gcc -Wall client.c packets.o -lpthread -o client
 	gcc -Wall server-mt.c packets.o -lpthread -o server-mt
 
 	gcc -Wall ds_manip.c -c -o ds_manip.o

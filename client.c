@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -17,54 +18,104 @@ void usage(int argc, char **argv) {
 
 #define BUFSZ 1024
 
+
+void* send_msg_handler(void* data) {
+    int s = *((int *) data);
+    char buf[BUFSZ];
+    memset(buf, 0, BUFSZ);
+
+    // Entrada da mensagem
+    printf("message1> ");
+    fflush(stdout);
+    fgets(buf, BUFSZ-1, stdin);
+
+    while(1) {
+        // Envia a mensagem
+        size_t count = send(s, buf, strlen(buf), 0);
+        if (count != strlen(buf)){ logexit("send");}
+
+        // Entrada da mensagem
+        printf("message3> ");
+        fflush(stdout);
+        memset(buf, 0, BUFSZ);
+        fgets(buf, BUFSZ-1, stdin);
+    }
+    pthread_exit(EXIT_SUCCESS);
+}
+
+void* recv_msg_handler(void* data) {
+    int s = *((int *) data);
+    char buf[BUFSZ];
+    memset(buf, 0, BUFSZ);
+    unsigned total = 0;
+
+    while (1) {
+        int count = recv(s, buf, BUFSZ, 0);
+        // puts("");
+        if (count > 0) {
+            // Imprime mensagem recebida do servidor
+            puts(buf);
+
+            // Imprime texto de input novamente
+            printf("message2> ");
+            fflush(stdout);
+        }else if (count == 0){
+            printf("\n");
+            printf("[log] Servidor encerrou a conexão.\n");
+            close(s);
+            exit(EXIT_FAILURE);
+            break;
+        }else{
+            // count == -1
+            logexit("recv (client)");
+        }
+        total += count;
+        memset(buf, 0, BUFSZ);
+    }
+    printf("[log] Recebeu um total de %i bytes\n", total);
+    pthread_exit(EXIT_SUCCESS);
+}
+
 int main(int argc, char **argv) {
-	if (argc < 3) {
-		usage(argc, argv);
-	}
+	if (argc < 3){
+        usage(argc, argv);
+    }
 
-	struct sockaddr_storage storage;
-	if (0 != addrparse(argv[1], argv[2], &storage)) {
-		usage(argc, argv);
-	}
+    struct sockaddr_storage storage;
+    if (addrparse(argv[1], argv[2], &storage) != 0){
+        usage(argc, argv);
+    }
 
-	int s;
-	s = socket(storage.ss_family, SOCK_STREAM, 0);
-	if (s == -1) {
-		logexit("socket");
-	}
-	struct sockaddr *addr = (struct sockaddr *)(&storage);
-	if (0 != connect(s, addr, sizeof(storage))) {
-		logexit("connect");
-	}
+    // Conexão com o servidor
+    int s = socket(storage.ss_family, SOCK_STREAM, 0);
+    if (s == -1) { logexit("socket");}
+    struct sockaddr* addr = (struct sockaddr*)(&storage);
+    if (connect(s, addr, sizeof(storage)) != 0){ logexit("connect");}
+    char addrstr[BUFSZ];       
+    addrtostr(addr, addrstr, BUFSZ);        // Imprimir o IP do servidor
+    printf("Sucessfully connected to %s.\n", addrstr);
 
-	char addrstr[BUFSZ];
-	addrtostr(addr, addrstr, BUFSZ);
+    pthread_t recv_msg_thread;
+    int *arg = (int*) malloc(sizeof(*arg));
+    if (arg == NULL) { logexit("malloc");}
+    *arg = s;
+    if(pthread_create(&recv_msg_thread, NULL, recv_msg_handler, arg) != 0){
+        logexit("pthread");
+    }
 
-	printf("connected to %s\n", addrstr);
+    pthread_t send_msg_thread;
+    arg = (int*) malloc(sizeof(*arg));
+    if (arg == NULL) { logexit("malloc");}
+    *arg = s;
 
-	char buf[BUFSZ];
-	memset(buf, 0, BUFSZ);
-	printf("mensagem> ");
-	fgets(buf, BUFSZ-1, stdin);
-	size_t count = send(s, buf, strlen(buf)+1, 0);
-	if (count != strlen(buf)+1) {
-		logexit("send");
-	}
+    pthread_create(&send_msg_thread, NULL, send_msg_handler, arg);
+    // Esperar a thread de enviar mensagem terminar, para que o programa espere
+    // que usuário digite
+    (void)pthread_join(send_msg_thread, NULL); 
 
-	memset(buf, 0, BUFSZ);
-	unsigned total = 0;
-	while(1) {
-		count = recv(s, buf + total, BUFSZ - total, 0);
-		if (count == 0) {
-			// Connection terminated.
-			break;
-		}
-		total += count;
-	}
-	close(s);
-
-	printf("received %u bytes\n", total);
-	puts(buf);
-
-	exit(EXIT_SUCCESS);
+    // pthread_create(&send_msg_thread, NULL, double_send_msg_handler, arg);
+    // // Esperar a thread de enviar mensagem terminar, para que o programa espere
+    // // que usuário digite
+    // (void)pthread_join(send_msg_thread, NULL); 
+    return 0;
 }
