@@ -4,7 +4,7 @@
 * (OK) Implementar tutorial 2
 * Implementar estruturas para que o sistema de arquivos lide com arquivos e 
 pastas numa árvore e não apenas na pasta raiz
-* Implementar uma forma de persistência das informações do sistema de arquivos
+* (OK) Implementar uma forma de persistência das informações do sistema de arquivos
 * Implementar uma forma do FUSE enviar pacotes via rede
 * (OK) Estabelecer uma conexão entre duas máquinas virtuais (postar no readme os passos)
 * Criar um protocolo de rede para enviar as informações do sistema de arquivos
