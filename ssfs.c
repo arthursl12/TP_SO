@@ -70,6 +70,9 @@ static int do_getattr(const char *path, struct stat *st){
     printf( "[getattr] Called\n" );
 	printf( "\tAttributes of %s requested\n", path );
 
+	FILE *fptr;
+	fptr = fopen("Harddisk.dat", "rb+");
+
     // Define some stat attributes
 	st->st_uid = getuid();      // Owner of the file (current user)
 	st->st_gid = getgid();      // Owner group of the files/directories 
@@ -82,13 +85,13 @@ static int do_getattr(const char *path, struct stat *st){
 	//      	Also defines Unix permission bits
 	// st_nlink: qtd of hardlinks to file/directory
 	// st_size: filesize in bytes
-	if (strcmp(path, "/") == 0 || is_dir( path ) == 1){
+	if (strcmp(path, "/") == 0 || is_dir(path) == 1){
 	    // Root or any directory
 		st->st_mode = S_IFDIR | 0755;   // It's a directory | permission bits
 		st->st_nlink = 2; // Why "two" hardlinks instead of "one"? 
 						  // The answer is here:
 						  // http://unix.stackexchange.com/a/101536
-	}else if (is_file( path ) == 1){
+	}else if (is_file(path) == 1){
 		// Files
 		st->st_mode = S_IFREG | 0644;
 		st->st_nlink = 1;
@@ -97,6 +100,20 @@ static int do_getattr(const char *path, struct stat *st){
 		// There is no such file or directory
 		return -ENOENT;
 	}
+
+    fseek(fptr, 0, SEEK_SET);
+	fwrite(&dir_list, sizeof(dir_list), 1, fptr);
+    fseek(fptr, sizeof(dir_list), SEEK_CUR);
+	fwrite(&files_list, sizeof(files_list), 1, fptr);
+	fseek(fptr, sizeof(files_list), SEEK_CUR);
+	fwrite(&files_content, sizeof(files_content), 1, fptr);
+	fseek(fptr, sizeof(files_content), SEEK_CUR);
+	fwrite(&curr_dir_idx, sizeof(curr_dir_idx), 1, fptr);
+	fseek(fptr, sizeof(curr_dir_idx) ,SEEK_CUR);
+	fwrite(&curr_file_idx, sizeof(curr_file_idx), 1, fptr);
+	fseek(fptr, sizeof(curr_file_idx) ,SEEK_CUR);
+	fwrite(&curr_file_content_idx, sizeof(curr_file_content_idx), 1, fptr);
+	fclose(fptr);
 	return 0;
 }
 
@@ -107,10 +124,9 @@ Receives directory path, buffer to fill in the requested files under it,
 filler to fill the buffer provided by FUSE
 Returns 0 on success, -1 otherwise
 */
-
 static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
  					  off_t offset, struct fuse_file_info *fi ){
-    printf( "--> Getting The List of Files of %s\n", path );
+	printf( "--> Getting The List of Files of %s\n", path );
     
     // Current directory and parent directory as available entries
     // Known Unix convention
@@ -120,15 +136,51 @@ static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
         
     if ( strcmp( path, "/" ) == 0 ){
         // Root directory
+		printf("\n%s contem os diretorios:\n", path);
 
-		// Adds all directories to the buffer
-		for (int curr_idx = 0; curr_idx <= curr_dir_idx; curr_idx++)
-			filler( buffer, dir_list[ curr_idx ], NULL, 0 );
+		for(int i = 1; i < DIR_NUMBER + 1; i++){
+			if(dir_list[0].sub_dirs[i] == 1){
+				printf("sub_dirs[%i] = %i -> %s\n", i, dir_list[0].sub_dirs[i], dir_list[i].name);
+				filler(buffer, dir_list[i].name, NULL, 0);
+			}
+		}
 		
-		// Adds all files to the buffer
-		for (int curr_idx = 0; curr_idx <= curr_file_idx; curr_idx++)
-			filler( buffer, files_list[ curr_idx ], NULL, 0 );
+		printf("%s contem os arquivos:\n", path);
+
+		for(int i = 0; i < FILE_NUMBER; i++){
+			if(dir_list[0].files[i] == 1){
+				printf("files[%i] = %i -> %s\n", i, dir_list[0].files[i], files_list[i]);
+				filler(buffer, files_list[i], NULL, 0);
+			}
+		}
+		printf("\n");
+	}else{
+		path++;
+		int dir_idx = get_directory_index(path);
+		char *formatted_name;
+
+		printf("\n%s contem os diretorios:\n", path);
+
+		for(int i = 1; i < DIR_NUMBER + 1; i++){
+			if(dir_list[dir_idx].sub_dirs[i] == 1){
+				printf("sub_dirs[%i] = %i -> %s\n", i, dir_list[dir_idx].sub_dirs[i] ,dir_list[i].name);
+				formatted_name = format_name(dir_list[i].name);
+				filler(buffer, "subdir", NULL, 0);
+			}
+		}
+		
+		printf("%s contem os arquivos:\n", path);
+
+		for(int i = 0; i < FILE_NUMBER; i++){
+			if(dir_list[dir_idx].files[i] == 1){
+				printf("files[%i] = %i -> %s\n", i, dir_list[dir_idx].files[i], files_list[i]);
+				formatted_name = format_name(files_list[i]);
+				filler(buffer, "file", NULL, 0);
+			}
+		}
+		printf("\n");
 	}
+
 	return 0;
 }
 
@@ -144,7 +196,7 @@ Returns -1 if file is not found
 static int do_read(const char *path, char *buffer, size_t size, 
 				   off_t offset, struct fuse_file_info *fi ){
 
-	int file_idx = get_file_index( path );
+	int file_idx = get_file_index(path);
 	if (file_idx == -1)
 		return -1;
 
@@ -160,7 +212,7 @@ Returns 0 on sucess.
 */
 static int do_mkdir(const char *path, mode_t mode){
 	path++;
-	add_dir( path );
+	add_dir(path);
 	
 	return 0;
 }
@@ -173,7 +225,7 @@ static int do_mknod( const char *path, mode_t mode, dev_t rdev ){
 	// mode specifies the permission bits and type of the new file
 	// rdev should be specified if the new file is a device file
 	path++;
-	add_file( path );
+	add_file(path);
 	
 	return 0;
 }
@@ -184,7 +236,7 @@ Returns the number of written bytes
 */
 static int do_write(const char *path, const char *buffer, 
 					size_t size, off_t offset, struct fuse_file_info *info){
-	write_to_file( path, buffer );
+	write_to_file(path, buffer);
 	
 	return size;
 }
@@ -200,6 +252,56 @@ static struct fuse_operations operations = {
 };
 
 int main( int argc, char *argv[] ){
+	FILE *fptr;
+	fptr = fopen("Harddisk.dat", "rb+");
+
+	if(fptr == NULL){
+		printf("\n Error opening harddisk file\n");
+		exit(1);
+	} else{
+		fseek(fptr, 0, SEEK_END);
+		int size = ftell(fptr);
+
+		if(size == 0){
+			INIT_DIR(root);
+			strcpy(root.name, "/");
+			dir_list[0] = root;
+
+			printf("\n\n - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" );
+			printf("\tFILE SYSTEM MOUNTED\n\n");
+		}else{
+			fseek(fptr, 0, SEEK_SET);
+			while(fread(&dir_list, sizeof(dir_list), 1, fptr) == sizeof(dir_list));
+			fseek(fptr, sizeof(dir_list), SEEK_CUR);
+			while(fread(&files_list, sizeof(files_list), 1, fptr) == sizeof(files_list));
+			fseek(fptr, sizeof(files_list), SEEK_CUR);
+			while(fread(&files_content, sizeof(files_content), 1, fptr) == sizeof(files_content));
+			fseek(fptr, sizeof(files_content), SEEK_CUR);
+			while(fread(&curr_dir_idx, sizeof(curr_dir_idx), 1, fptr) == sizeof(curr_dir_idx));
+			fseek(fptr, sizeof(curr_dir_idx) , SEEK_CUR);
+			while(fread(&curr_file_idx, sizeof(curr_file_idx), 1, fptr) == sizeof(curr_file_idx));
+			fseek(fptr, sizeof(curr_file_idx) , SEEK_CUR);
+			while(fread(&curr_file_content_idx, sizeof(curr_file_content_idx), 1, fptr) ==\
+			      sizeof(curr_file_content_idx));
+			printf("\n\n - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" );
+			printf("\tFILE SYSTEM RE-MOUNTED\n\n");
+		}
+	}
+
+	printf("Lista de diretorios:\n");
+
+	for(int curr_idx = 1; curr_idx <= curr_dir_idx; curr_idx++)
+		printf("\t%s\n", dir_list[curr_idx].name);
+
+	printf("Lista de arquivos:\n");
+
+	for(int curr_idx = 0; curr_idx <= curr_file_idx; curr_idx++)
+		printf("\t%s\n", files_list[curr_idx]);
+
+	printf("\n"); 	
+
+	fclose(fptr);
+
 	return fuse_main( argc, argv, &operations, NULL );
 }
 
