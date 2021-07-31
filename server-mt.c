@@ -34,8 +34,9 @@ void last_mod_msg2_send(int* socket_ptr, const char* filename){
     // Enconde message and copy it to buffer
     char *msg = NULL; 
     size_t size;
-    last_mod_msg2_encode("makefile", &msg, &size);
-    memcpy(buf, msg, strlen(msg));
+    last_mod_msg2_encode("file_server.txt", &msg, &size);
+    print_bytes(msg, size);
+    memcpy(buf, msg, size);
 
     // Send it
     size_t count = send(s, buf, size, 0);

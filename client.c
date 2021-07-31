@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -104,7 +105,7 @@ void last_mod_msg1_send(int* socket_ptr){
 
     // Send it
     size_t count = send(s, buf, size, 0);
-    printf("[log] sent: %li",count);
+    printf("[log] sent: %li\n",count);
     if (count != strlen(buf)){ logexit("send");}
 }
 
@@ -136,15 +137,31 @@ int main(int argc, char **argv) {
     char buf[BUFSZ];
     memset(buf, 0, BUFSZ);
     size_t count = recv(s, buf, BUFSZ, 0);
-
+    print_bytes(buf, count);
     uint16_t code = msg_code(buf);
     printf("[msg] code: %i\n", code);
     if (code == 2){
+        // Get date sent from server
         time_t server_last_mod_date = last_mod_msg2_decode(buf);
         printf("Last modified time (server): %s\n", ctime(&server_last_mod_date));
+
+        // Get client last modified date
+        struct stat attr;
+        stat("file_client.txt", &attr);
+        time_t client_last_mod_date = attr.st_mtime;
+        printf("Last modified time (client): %s\n", ctime(&client_last_mod_date));
+        if (client_last_mod_date < server_last_mod_date){
+            printf("We need to update\n");
+        }else{
+            printf("No update needed\n");
+        }
+    
+    
     }else{
         logexit("wrong protocol");
     }
+
+    
 
 
     // last_mod_msg_send(&s, "makefile");

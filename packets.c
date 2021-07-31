@@ -183,8 +183,9 @@ Returns enconded date.
 time_t last_mod_msg2_decode(char* msg){
     u_int16_t otherint;
     time_t time;
+    print_bytes((msg+sizeof(otherint)), sizeof(time));
     memcpy(&time, msg+sizeof(otherint), sizeof(time));
-    // printf("Last modified time: %s\n", ctime(&time));
+    printf("Last modified time: %s\n", ctime(&time));
     return time;
 }
 
