@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <time.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <arpa/inet.h>
 
 void logexit(const char *msg){
@@ -100,3 +103,66 @@ int server_sockaddr_init(const char *proto, const char *portstr,
         return -1;
     }
 }
+
+
+/*
+Prints a byte array in hexadecimal
+*/
+void print_bytes(char* bytearray, size_t size){
+    int i;
+    for (i = 0; i < size; i++){
+        printf("%hhx ", bytearray[i]);
+    }
+    printf("\\\n");
+}
+
+/*
+Creates a message with last modified date of given file.
+This message has code 1.
+
+Returns void.
+Created message will be allocated in given 'msg' pointer.
+Its size will be placed in given 'size' pointer.
+*/
+void last_mod_msg_encode(const char* path, char** msg, size_t* size){
+    // 2-byte integer: message code
+    u_int16_t code = 1; 
+
+    // Get file attributes
+    struct stat attr;
+    stat(path, &attr);
+    time_t date = attr.st_mtime;
+
+    // Create byte-like message
+    *size = sizeof(code)+sizeof(date);
+    *msg = (char*) malloc(*size);
+
+    // Copying contents to message
+    memcpy(*msg, &code, sizeof(code));
+    memcpy(*msg+sizeof(code), &date, sizeof(date));
+
+    print_bytes(*msg, *size);
+}
+
+/*
+Discover code of given message. A message's code is an 2-byte
+integer composed by the first two message bytes.
+*/
+uint16_t msg_code(char* msg){
+    u_int16_t otherint;
+    memcpy(&otherint, msg, sizeof(otherint));
+    return otherint;
+}
+
+/*
+Decodes a message with last modified date.
+Returns enconded date.
+*/
+time_t last_mod_msg_decode(char* msg){
+    u_int16_t otherint;
+    time_t time;
+    memcpy(&time, msg+sizeof(otherint), sizeof(time));
+    // printf("Last modified time: %s\n", ctime(&time));
+    return time;
+}
+

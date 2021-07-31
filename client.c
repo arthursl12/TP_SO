@@ -27,7 +27,17 @@ void* send_msg_handler(void* data) {
     // Entrada da mensagem
     printf("message1> ");
     fflush(stdout);
-    fgets(buf, BUFSZ-1, stdin);
+    // fgets(buf, BUFSZ-1, stdin);
+    char *msg = NULL; 
+    size_t size;
+    last_mod_msg_encode("makefile", &msg, &size);
+    printf("[log] size: %li\n",size);
+    print_bytes(msg, size);
+    memcpy(buf, msg, strlen(msg));
+    size_t count = send(s, buf, size, 0);
+    printf("[log] sent: %li",count);
+    if (count != strlen(buf)){ logexit("send");}
+    memset(buf, 0, BUFSZ);
 
     while(1) {
         // Envia a mensagem
@@ -76,6 +86,28 @@ void* recv_msg_handler(void* data) {
     pthread_exit(EXIT_SUCCESS);
 }
 
+
+void last_mod_msg_send(int* socket_ptr, const char* filename){
+    // Creates msg1
+    // Derreference socket pointer in order to use it
+    int s = *socket_ptr;
+
+    // Create buffer and set it to zero
+    char buf[BUFSZ];
+    memset(buf, 0, BUFSZ);
+
+    // Enconde message and copy it to buffer
+    char *msg = NULL; 
+    size_t size;
+    last_mod_msg_encode(filename, &msg, &size);
+    memcpy(buf, msg, strlen(msg));
+
+    // Send it
+    size_t count = send(s, buf, size, 0);
+    printf("[log] sent: %li",count);
+    if (count != strlen(buf)){ logexit("send");}
+}
+
 int main(int argc, char **argv) {
 	if (argc < 3){
         usage(argc, argv);
@@ -95,23 +127,44 @@ int main(int argc, char **argv) {
     addrtostr(addr, addrstr, BUFSZ);        // Imprimir o IP do servidor
     printf("Sucessfully connected to %s.\n", addrstr);
 
-    pthread_t recv_msg_thread;
-    int *arg = (int*) malloc(sizeof(*arg));
-    if (arg == NULL) { logexit("malloc");}
-    *arg = s;
-    if(pthread_create(&recv_msg_thread, NULL, recv_msg_handler, arg) != 0){
-        logexit("pthread");
-    }
+    // Protocol test
+    // Send msg1
+    last_mod_msg_send(&s, "makefile");
 
-    pthread_t send_msg_thread;
-    arg = (int*) malloc(sizeof(*arg));
-    if (arg == NULL) { logexit("malloc");}
-    *arg = s;
 
-    pthread_create(&send_msg_thread, NULL, send_msg_handler, arg);
-    // Esperar a thread de enviar mensagem terminar, para que o programa espere
-    // que usuário digite
-    (void)pthread_join(send_msg_thread, NULL); 
+    // Receive message
+    char buf[BUFSZ];
+    memset(buf, 0, BUFSZ);
+    size_t count = recv(s, buf, BUFSZ, 0);
+
+    last_mod_msg_send(&s, "makefile");
+    memset(buf, 0, BUFSZ);
+    count = recv(s, buf, BUFSZ, 0);
+
+
+
+
+
+
+
+
+    // pthread_t recv_msg_thread;
+    // int *arg = (int*) malloc(sizeof(*arg));
+    // if (arg == NULL) { logexit("malloc");}
+    // *arg = s;
+    // if(pthread_create(&recv_msg_thread, NULL, recv_msg_handler, arg) != 0){
+    //     logexit("pthread");
+    // }
+
+    // pthread_t send_msg_thread;
+    // arg = (int*) malloc(sizeof(*arg));
+    // if (arg == NULL) { logexit("malloc");}
+    // *arg = s;
+
+    // pthread_create(&send_msg_thread, NULL, send_msg_handler, arg);
+    // // Esperar a thread de enviar mensagem terminar, para que o programa espere
+    // // que usuário digite
+    // (void)pthread_join(send_msg_thread, NULL); 
 
     // pthread_create(&send_msg_thread, NULL, double_send_msg_handler, arg);
     // // Esperar a thread de enviar mensagem terminar, para que o programa espere

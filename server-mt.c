@@ -35,6 +35,10 @@ void* client_thread(void *data) {
         memset(buf, 0, BUFSZ);
         size_t count = recv(cdata->csock, buf, BUFSZ - 1, 0);
         printf("[msg] %s, %d bytes: %s\n", caddrstr, (int)count, buf);
+        uint16_t code = msg_code(buf);
+        printf("[msg] code: %i\n", code);
+
+
 
         sprintf(buf, "remote endpoint: %.1000s\n", caddrstr);
         count = send(cdata->csock, buf, strlen(buf) + 1, 0);
