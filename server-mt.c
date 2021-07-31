@@ -22,6 +22,27 @@ struct client_data {
     struct sockaddr_storage storage;
 };
 
+void last_mod_msg2_send(int* socket_ptr, const char* filename){
+    // Creates msg1
+    // Derreference socket pointer in order to use it
+    int s = *socket_ptr;
+
+    // Create buffer and set it to zero
+    char buf[BUFSZ];
+    memset(buf, 0, BUFSZ);
+
+    // Enconde message and copy it to buffer
+    char *msg = NULL; 
+    size_t size;
+    last_mod_msg2_encode("makefile", &msg, &size);
+    memcpy(buf, msg, strlen(msg));
+
+    // Send it
+    size_t count = send(s, buf, size, 0);
+    printf("[log] sent: %li",count);
+    if (count != strlen(buf)){ logexit("send");}
+}
+
 void* client_thread(void *data) {
     struct client_data *cdata = (struct client_data *)data;
     struct sockaddr *caddr = (struct sockaddr *)(&cdata->storage);
@@ -37,7 +58,14 @@ void* client_thread(void *data) {
         printf("[msg] %s, %d bytes: %s\n", caddrstr, (int)count, buf);
         uint16_t code = msg_code(buf);
         printf("[msg] code: %i\n", code);
+        if (code == 1){
+            last_mod_msg2_send(&(cdata->csock), "makefile");
 
+            // time_t client_last_date = last_mod_msg2_decode(buf);
+            // printf("Last modified time (client): %s\n", ctime(&client_last_date));
+            // printf("[msg] code: %i\n", code);
+
+        }
 
 
         sprintf(buf, "remote endpoint: %.1000s\n", caddrstr);

@@ -30,7 +30,7 @@ void* send_msg_handler(void* data) {
     // fgets(buf, BUFSZ-1, stdin);
     char *msg = NULL; 
     size_t size;
-    last_mod_msg_encode("makefile", &msg, &size);
+    last_mod_msg2_encode("makefile", &msg, &size);
     printf("[log] size: %li\n",size);
     print_bytes(msg, size);
     memcpy(buf, msg, strlen(msg));
@@ -87,7 +87,7 @@ void* recv_msg_handler(void* data) {
 }
 
 
-void last_mod_msg_send(int* socket_ptr, const char* filename){
+void last_mod_msg1_send(int* socket_ptr){
     // Creates msg1
     // Derreference socket pointer in order to use it
     int s = *socket_ptr;
@@ -99,7 +99,7 @@ void last_mod_msg_send(int* socket_ptr, const char* filename){
     // Enconde message and copy it to buffer
     char *msg = NULL; 
     size_t size;
-    last_mod_msg_encode(filename, &msg, &size);
+    last_mod_msg1_encode(&msg, &size);
     memcpy(buf, msg, strlen(msg));
 
     // Send it
@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
 
     // Protocol test
     // Send msg1
-    last_mod_msg_send(&s, "makefile");
+    last_mod_msg1_send(&s);
 
 
     // Receive message
@@ -137,9 +137,19 @@ int main(int argc, char **argv) {
     memset(buf, 0, BUFSZ);
     size_t count = recv(s, buf, BUFSZ, 0);
 
-    last_mod_msg_send(&s, "makefile");
-    memset(buf, 0, BUFSZ);
-    count = recv(s, buf, BUFSZ, 0);
+    uint16_t code = msg_code(buf);
+    printf("[msg] code: %i\n", code);
+    if (code == 2){
+        time_t server_last_mod_date = last_mod_msg2_decode(buf);
+        printf("Last modified time (server): %s\n", ctime(&server_last_mod_date));
+    }else{
+        logexit("wrong protocol");
+    }
+
+
+    // last_mod_msg_send(&s, "makefile");
+    // memset(buf, 0, BUFSZ);
+    // count = recv(s, buf, BUFSZ, 0);
 
 
 
