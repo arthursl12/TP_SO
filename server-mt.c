@@ -65,7 +65,8 @@ void* client_thread(void *data) {
             // time_t client_last_date = last_mod_msg2_decode(buf);
             // printf("Last modified time (client): %s\n", ctime(&client_last_date));
             // printf("[msg] code: %i\n", code);
-
+        }else if(code == 3){
+            send_file(&(cdata->csock), "file_server.txt");
         }
 
 

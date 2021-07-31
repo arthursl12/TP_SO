@@ -22,6 +22,9 @@ void last_mod_msg1_encode(char** msg, size_t* size);
 void last_mod_msg2_encode(const char* path, char** msg, size_t* size);
 time_t last_mod_msg2_decode(char* msg);
 
+void last_mod_msg3_encode(char** msg, size_t* size);
+void send_file(int* socket_ptr, const char* filename);
+void recv_file(int* socket_ptr, const char* filename);
 
 uint16_t msg_code(char* msg);
 void print_bytes(char* bytearray, size_t size);

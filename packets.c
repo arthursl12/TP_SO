@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 
+#define BUFSZ 1024
+
 void logexit(const char *msg){
     perror(msg);
     // exit(EXIT_FAILURE);
@@ -167,6 +169,28 @@ void last_mod_msg1_encode(char** msg, size_t* size){
 }
 
 /*
+Creates a message requesting file hierarchy archive.
+This message has code 3.
+
+Returns void.
+Created message will be allocated in given 'msg' pointer.
+Its size will be placed in given 'size' pointer.
+*/
+void last_mod_msg3_encode(char** msg, size_t* size){
+    // 2-byte integer: message code
+    u_int16_t code = 3; 
+
+    // Create byte-like message
+    *size = sizeof(code);
+    *msg = (char*) malloc(*size);
+
+    // Copying contents to message
+    memcpy(*msg, &code, sizeof(code));
+
+    print_bytes(*msg, *size);
+}
+
+/*
 Discover code of given message. A message's code is an 2-byte
 integer composed by the first two message bytes.
 */
@@ -187,5 +211,89 @@ time_t last_mod_msg2_decode(char* msg){
     memcpy(&time, msg+sizeof(otherint), sizeof(time));
     printf("Last modified time: %s\n", ctime(&time));
     return time;
+}
+
+void send_file(int* socket_ptr, const char* filename){
+    // Create buffer and set it to zero
+    char buf[BUFSZ];
+    memset(buf, 0, BUFSZ);
+
+    // Derreference socket pointer in order to use it
+    int s = *socket_ptr;
+
+    // Read from file
+    FILE *ptr;
+    ptr = fopen(filename,"rb");  // r for read, b for binary
+
+    int end = 0;
+    int nread;
+    // Read BUFSZ blocks of 1 byte
+    while( 0 < (nread = fread(buf, 1, BUFSZ, ptr))){
+        print_bytes(buf, BUFSZ);
+        printf("read: %i\n", nread);
+
+        size_t count = send(s, buf, nread, 0);
+        printf("[log] sent: %li",count);
+        if (count != strlen(buf)){ logexit("send");}
+        memset(buf, 0, BUFSZ);
+    }
+    memcpy(buf, "DONE", sizeof("DONE"));
+    size_t count = send(s, buf, BUFSZ, 0);
+    printf("[log] sent: %li",count);
+    if (count != strlen(buf)){ logexit("send");}
+    memset(buf, 0, BUFSZ);
+    fclose(ptr);
+
+}
+
+void recv_file(int* socket_ptr, const char* filename){
+    // Create buffer and set it to zero
+    char buf[BUFSZ];
+    memset(buf, 0, BUFSZ);
+
+    // Derreference socket pointer in order to use it
+    int s = *socket_ptr;
+
+    size_t count = recv(s, buf, BUFSZ, 0);
+
+    // Read from file
+    FILE *ptr;
+    ptr = fopen(filename,"wb");  // r for read, b for binary
+    if (ptr == NULL){
+       perror("resultat.txt");
+       exit(1);
+   }
+
+
+    int end = 0;
+    int nread;
+    // Read BUFSZ blocks of 1 byte
+    while (strcmp(buf, "DONE") != 0){
+        size_t count = recv(s, buf, BUFSZ, 0);
+        printf("[msg] %d bytes: %s\n", (int)count, buf);
+        if (strcmp(buf, "DONE") == 0){
+            printf("We must break\n");
+            break;
+        }
+
+
+        nread = fwrite(buf, 1, count, ptr); 
+        printf("wrote: %d\n", nread);
+        memset(buf, 0, BUFSZ);
+    }
+    printf("Closing now\n");
+    fclose(ptr);
+
+
+    // while( 0 < (nread = fread(buf, 1, BUFSZ, ptr))){
+    //     print_bytes(buf, BUFSZ);
+    //     printf("read: %i\n", nread);
+
+    //     // size_t count = send(s, buf, BUFSZ, 0);
+    //     // printf("[log] sent: %li",count);
+    //     // if (count != strlen(buf)){ logexit("send");}
+    //     memset(buf, 0, BUFSZ);
+    // }
+
 }
 

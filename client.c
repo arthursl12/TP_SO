@@ -109,6 +109,27 @@ void last_mod_msg1_send(int* socket_ptr){
     if (count != strlen(buf)){ logexit("send");}
 }
 
+void last_mod_msg3_send(int* socket_ptr){
+    // Creates msg1
+    // Derreference socket pointer in order to use it
+    int s = *socket_ptr;
+
+    // Create buffer and set it to zero
+    char buf[BUFSZ];
+    memset(buf, 0, BUFSZ);
+
+    // Enconde message and copy it to buffer
+    char *msg = NULL; 
+    size_t size;
+    last_mod_msg3_encode(&msg, &size);
+    memcpy(buf, msg, strlen(msg));
+
+    // Send it
+    size_t count = send(s, buf, size, 0);
+    printf("[log] sent: %li\n",count);
+    if (count != strlen(buf)){ logexit("send");}
+}
+
 int main(int argc, char **argv) {
 	if (argc < 3){
         usage(argc, argv);
@@ -152,6 +173,8 @@ int main(int argc, char **argv) {
         printf("Last modified time (client): %s\n", ctime(&client_last_mod_date));
         if (client_last_mod_date < server_last_mod_date){
             printf("We need to update\n");
+            last_mod_msg3_send(&s);
+            recv_file(&s, "file_recv.txt");
         }else{
             printf("No update needed\n");
         }
