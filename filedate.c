@@ -5,15 +5,15 @@
 #include "filedate.h"
 
 /*
-Puts current date into passed file
+Puts given date into passed file
 */
-void updateDate(const char* filename){
+void updateDate(const char* filename, time_t mytime){
     // Open file
     FILE *fptr;
     fptr = fopen(filename, "wb");
 
     // Allocate variables and get current time
-    time_t mytime = time(NULL);
+    // time_t mytime = time(NULL);
 
     // Convert to bytes
     char* dump = (char*) malloc(sizeof(mytime));

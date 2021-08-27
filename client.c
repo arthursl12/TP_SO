@@ -1,4 +1,5 @@
 #include "packets.h"
+#include "filedate.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,6 +12,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+
+
 void usage(int argc, char **argv) {
 	printf("usage: %s <server IP> <server port>\n", argv[0]);
 	printf("example: %s 127.0.0.1 51511\n", argv[0]);
@@ -18,7 +21,7 @@ void usage(int argc, char **argv) {
 }
 
 #define BUFSZ 1024
-
+#define CLIENT_FILENAME "lastmod_client.date"
 
 void* send_msg_handler(void* data) {
     int s = *((int *) data);
@@ -165,16 +168,28 @@ int main(int argc, char **argv) {
         // Get date sent from server
         time_t server_last_mod_date = last_mod_msg2_decode(buf);
         printf("Last modified time (server): %s\n", ctime(&server_last_mod_date));
-
+        
         // Get client last modified date
-        struct stat attr;
-        stat("file_client.txt", &attr);
-        time_t client_last_mod_date = attr.st_mtime;
-        printf("Last modified time (client): %s\n", ctime(&client_last_mod_date));
+        // struct stat attr;
+        // stat("file_client.txt", &attr);
+        // time_t client_last_mod_date = attr.st_mtime;
+        time_t client_last_mod_date;
+        if(access(CLIENT_FILENAME, F_OK ) == 0){
+            // file exists
+            client_last_mod_date = getDate("lastmod_client.date");
+            printf("Last modified time (client): %s\n", ctime(&client_last_mod_date));
+        }else{
+            // file doesn't exist
+            // we'll need to update, so just make the variable smaller so
+            // we are caught in next if clause 
+            client_last_mod_date = server_last_mod_date - 1;
+        }
+
         if (client_last_mod_date < server_last_mod_date){
             printf("We need to update\n");
             last_mod_msg3_send(&s);
             recv_file(&s, "file_recv.txt");
+            updateDate(CLIENT_FILENAME, server_last_mod_date);
         }else{
             printf("No update needed\n");
         }

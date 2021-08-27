@@ -7,6 +7,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <unistd.h>
+
+#include "filedate.h"
 
 #define BUFSZ 1024
 
@@ -118,32 +121,15 @@ void print_bytes(char* bytearray, size_t size){
     printf("\\\n");
 }
 
+
 /*
-Creates a message with last modified date of given file.
-This message has code 2.
-
-Returns void.
-Created message will be allocated in given 'msg' pointer.
-Its size will be placed in given 'size' pointer.
+Discover code of given message. A message's code is an 2-byte
+integer composed by the first two message bytes.
 */
-void last_mod_msg2_encode(const char* path, char** msg, size_t* size){
-    // 2-byte integer: message code
-    u_int16_t code = 2; 
-
-    // Get file attributes
-    struct stat attr;
-    stat(path, &attr);
-    time_t date = attr.st_mtime;
-
-    // Create byte-like message
-    *size = sizeof(code)+sizeof(date);
-    *msg = (char*) malloc(*size);
-
-    // Copying contents to message
-    memcpy(*msg, &code, sizeof(code));
-    memcpy(*msg+sizeof(code), &date, sizeof(date));
-
-    print_bytes(*msg, *size);
+uint16_t msg_code(char* msg){
+    u_int16_t otherint;
+    memcpy(&otherint, msg, sizeof(otherint));
+    return otherint;
 }
 
 /*
@@ -191,13 +177,36 @@ void last_mod_msg3_encode(char** msg, size_t* size){
 }
 
 /*
-Discover code of given message. A message's code is an 2-byte
-integer composed by the first two message bytes.
+Creates a message with last modified date written in passed file.
+This message has code 2.
+
+Returns void.
+Created message will be allocated in given 'msg' pointer.
+Its size will be placed in given 'size' pointer.
 */
-uint16_t msg_code(char* msg){
-    u_int16_t otherint;
-    memcpy(&otherint, msg, sizeof(otherint));
-    return otherint;
+void last_mod_msg2_encode(const char* path, char** msg, size_t* size){
+    // 2-byte integer: message code
+    u_int16_t code = 2; 
+
+    // Get last mod date from file
+    time_t date;
+    if(access(path, F_OK) == 0){
+        // file exists
+        date = getDate(path);
+    }else{
+        date = time(NULL);
+        updateDate(path, date);
+    }
+
+    // Create byte-like message
+    *size = sizeof(code)+sizeof(date);
+    *msg = (char*) malloc(*size);
+
+    // Copying contents to message
+    memcpy(*msg, &code, sizeof(code));
+    memcpy(*msg+sizeof(code), &date, sizeof(date));
+
+    print_bytes(*msg, *size);
 }
 
 /*

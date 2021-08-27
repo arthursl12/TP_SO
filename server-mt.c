@@ -10,6 +10,7 @@
 #include <sys/types.h>
 
 #define BUFSZ 1024
+#define SERVER_FILENAME "lastmod_server.date"
 
 void usage(int argc, char **argv) {
     printf("usage: %s <server port>\n", argv[0]);
@@ -27,6 +28,7 @@ void last_mod_msg2_send(int* socket_ptr, const char* filename){
     // Creates msg1
     // Derreference socket pointer in order to use it
     int s = *socket_ptr;
+    printf("Aqui0\n");
 
     // Create buffer and set it to zero
     char buf[BUFSZ];
@@ -35,7 +37,8 @@ void last_mod_msg2_send(int* socket_ptr, const char* filename){
     // Enconde message and copy it to buffer
     char *msg = NULL; 
     size_t size;
-    last_mod_msg2_encode("file_server.txt", &msg, &size);
+    printf("Aqui\n");
+    last_mod_msg2_encode(SERVER_FILENAME, &msg, &size);
     print_bytes(msg, size);
     memcpy(buf, msg, size);
 
@@ -61,7 +64,7 @@ void* client_thread(void *data) {
         uint16_t code = msg_code(buf);
         printf("[msg] code: %i\n", code);
         if (code == 1){
-            last_mod_msg2_send(&(cdata->csock), "makefile");
+            last_mod_msg2_send(&(cdata->csock), SERVER_FILENAME);
 
             // time_t client_last_date = last_mod_msg2_decode(buf);
             // printf("Last modified time (client): %s\n", ctime(&client_last_date));
