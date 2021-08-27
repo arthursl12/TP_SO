@@ -22,13 +22,6 @@ struct client_data {
     struct sockaddr_storage storage;
 };
 
-/*
-Puts current date into passed file
-*/
-void updateDate(const char* filename){
-    FILE *fptr;
-    ptr = fopen("fileopen","mode");
-}
 
 void last_mod_msg2_send(int* socket_ptr, const char* filename){
     // Creates msg1

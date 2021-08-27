@@ -2,17 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-
-/*
-Prints a byte array in hexadecimal
-*/
-void print_bytes(char* bytearray, size_t size){
-    int i;
-    for (i = 0; i < size; i++){
-        printf("%hhx ", bytearray[i]);
-    }
-    printf("\\\n");
-}
+#include "filedate.h"
 
 /*
 Puts current date into passed file
@@ -24,7 +14,6 @@ void updateDate(const char* filename){
 
     // Allocate variables and get current time
     time_t mytime = time(NULL);
-    char *time_str = ctime(&mytime);
 
     // Convert to bytes
     char* dump = (char*) malloc(sizeof(mytime));
@@ -58,12 +47,16 @@ time_t getDate(const char* filename){
     return mytime;
 }
 
-
-int main(){
-    // updateDate("lastmod.date");
-    // getDate("lastmod.date");
-    time_t mytime = getDate("lastmod.date");
+void printDate(time_t mytime){
     char *time_str = ctime(&mytime);
     printf("Current Time : %s\n", time_str);
-    return 0;
 }
+
+// int main(){
+//     // updateDate("lastmod.date");
+//     // getDate("lastmod.date");
+//     time_t mytime = getDate("lastmod.date");
+//     char *time_str = ctime(&mytime);
+//     printf("Current Time : %s\n", time_str);
+//     return 0;
+// }
