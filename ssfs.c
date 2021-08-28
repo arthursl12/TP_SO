@@ -138,10 +138,15 @@ static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
         // Root directory
 		printf("\n%s contem os diretorios:\n", path);
 
+		char *formatted_name;
+
 		for(int i = 1; i < DIR_NUMBER + 1; i++){
 			if(dir_list[0].sub_dirs[i] == 1){
 				printf("sub_dirs[%i] = %i -> %s\n", i, dir_list[0].sub_dirs[i], dir_list[i].name);
-				filler(buffer, dir_list[i].name, NULL, 0);
+				formatted_name = format_name(dir_list[i].name);
+				printf("\tFomatted name: %s\n", formatted_name);
+				// filler(buffer, dir_list[i].name, NULL, 0);
+				filler(buffer, formatted_name, NULL, 0);
 			}
 		}
 		
@@ -150,7 +155,10 @@ static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 		for(int i = 0; i < FILE_NUMBER; i++){
 			if(dir_list[0].files[i] == 1){
 				printf("files[%i] = %i -> %s\n", i, dir_list[0].files[i], files_list[i]);
-				filler(buffer, files_list[i], NULL, 0);
+				formatted_name = format_name(files_list[i]);
+				printf("\tFomatted name: %s\n", format_name(files_list[i]));
+				// filler(buffer, files_list[i], NULL, 0);
+				filler(buffer, formatted_name, NULL, 0);
 			}
 		}
 		printf("\n");
@@ -165,7 +173,9 @@ static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 			if(dir_list[dir_idx].sub_dirs[i] == 1){
 				printf("sub_dirs[%i] = %i -> %s\n", i, dir_list[dir_idx].sub_dirs[i] ,dir_list[i].name);
 				formatted_name = format_name(dir_list[i].name);
-				filler(buffer, "subdir", NULL, 0);
+				printf("\tFomatted name: %s\n", formatted_name);
+				// filler(buffer, "subdir", NULL, 0);
+				filler(buffer, formatted_name, NULL, 0);
 			}
 		}
 		
@@ -175,13 +185,19 @@ static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 			if(dir_list[dir_idx].files[i] == 1){
 				printf("files[%i] = %i -> %s\n", i, dir_list[dir_idx].files[i], files_list[i]);
 				formatted_name = format_name(files_list[i]);
-				filler(buffer, "file", NULL, 0);
+				printf("\tFomatted name: %s\n", formatted_name);
+				// filler(buffer, "file", NULL, 0);
+				filler(buffer, formatted_name, NULL, 0);
 			}
 		}
 		printf("\n");
 	}
 
 	return 0;
+}
+
+static int do_open(const char *path, struct fuse_file_info *fi) {
+  return 0;
 }
 
 /*
@@ -249,6 +265,7 @@ static struct fuse_operations operations = {
     .mkdir		= do_mkdir,
     .mknod		= do_mknod,
     .write		= do_write,
+	.open		= do_open,
 };
 
 int main( int argc, char *argv[] ){

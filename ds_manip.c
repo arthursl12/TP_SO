@@ -150,13 +150,14 @@ char *format_name(const char *name){
 		}
 	}
 
-	// Return string after last "/"
-	char aux[size - (index + 1)];
+	char *formatted_name;
 
-	for(int i = index + 1, j = 0; i < size; i++, j++)
-		aux[j] = name[i];
-
-	char *formatted_name = aux;
-
-	return formatted_name;
+	if(index == 0) {
+		formatted_name = name;
+		return formatted_name;
+	}else{
+		// Return string after last "/"
+		formatted_name = name + (index + 1);
+		return formatted_name;
+	}
 }
