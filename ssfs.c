@@ -1,4 +1,5 @@
 #define FUSE_USE_VERSION 30
+#define BUFSZ 1024
 
 #include <fuse.h>
 #include <stdio.h>
@@ -8,8 +9,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <pthread.h>
+#include <sys/socket.h>
 
 #include "ds_manip.h"
+#include "packets.h"
+#include "serverfs.h"
 
 /* Based on tutorials:
 https://www.maastaar.net/fuse/linux/filesystem/c/2016/05/21/writing-a-simple-filesystem-using-fuse/
@@ -199,7 +204,30 @@ static struct fuse_operations operations = {
     .write		= do_write,
 };
 
+
 int main( int argc, char *argv[] ){
+
+	// Client socket initialization
+	struct sockaddr_storage storage;
+	char* ip = "127.0.0.1";
+	char* port = "51511";
+    if (addrparse(ip, port, &storage) != 0){
+        logexit("ipport");
+    }
+
+    // Conexão com o servidor
+    int s = socket(storage.ss_family, SOCK_STREAM, 0);
+    if (s == -1) { logexit("socket");}
+    struct sockaddr* addr = (struct sockaddr*)(&storage);
+    if (connect(s, addr, sizeof(storage)) != 0){ 
+		logexit("connect"); 
+		exit(EXIT_FAILURE);
+	}
+    char addrstr[BUFSZ];       
+    addrtostr(addr, addrstr, BUFSZ);        // Imprimir o IP do servidor
+    printf("Sucessfully connected to %s.\n", addrstr);
+
+
 	return fuse_main( argc, argv, &operations, NULL );
 }
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef FILEDATE_H
 #define FILEDATE_H
 

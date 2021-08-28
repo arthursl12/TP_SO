@@ -222,6 +222,7 @@ time_t last_mod_msg2_decode(char* msg){
     return time;
 }
 
+
 void send_file(int* socket_ptr, const char* filename){
     // Create buffer and set it to zero
     char buf[BUFSZ];
