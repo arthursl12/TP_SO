@@ -55,6 +55,14 @@ Agora, basta ir, num outro terminal, para onde foi montado e testar os (poucos) 
 
 Dar um CTRL+C no terminal que montou o sistema de arquivos o desmonta (forçosamente).
 
+### Observação
+Agora, para conseguir montar o sistema de arquivos, é necessário ter um outro
+terminal rodando o *server-mt* escutando na porta 51511. Para executar isso:
+
+    ./server-mt 51511
+
+Caso isso não seja feito, o *ssfs* irá acusar *connection refused*.
+
 # Conexão VMs
 Para conectar duas (ou mais) máquinas virtuais entre si (permitindo troca de pacotes) e ainda mantendo a conexão com a Internet, basta seguir os passos desse vídeo de 5 minutos. Não é difícil, apenas criamos uma _NAT Network_ no VirtualBox (está explicado no vídeo). Para isso criamos uma regra de IP's para as máquinas (também explicado no vídeo). Podemos deixar esse campo em "**10.10.10.0/24**" (sem aspas) para padronizar.
 
