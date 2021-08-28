@@ -64,6 +64,10 @@ GNU's definitions of the attributes
 				link refers to.
 */
 
+/* Client socket */
+int s;
+struct sockaddr_storage storage;
+
 /*
 Called when the system asks the FS for the attributes of a specific file or 
 directory
@@ -73,6 +77,8 @@ Returns 0 on success, -ENOENT when it doesn't exist
 */
 static int do_getattr(const char *path, struct stat *st){
     printf( "[getattr] Called\n" );
+    printf( "[getattr] Getting update, if needed\n" );
+	update_if_needed(&s);
 	printf( "\tAttributes of %s requested\n", path );
 
     // Define some stat attributes
@@ -115,7 +121,8 @@ Returns 0 on success, -1 otherwise
 
 static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
  					  off_t offset, struct fuse_file_info *fi ){
-    printf( "--> Getting The List of Files of %s\n", path );
+    printf( "[readdir] Called\n" );
+	printf( "--> Getting The List of Files of %s\n", path );
     
     // Current directory and parent directory as available entries
     // Known Unix convention
@@ -204,11 +211,10 @@ static struct fuse_operations operations = {
     .write		= do_write,
 };
 
-
 int main( int argc, char *argv[] ){
 
 	// Client socket initialization
-	struct sockaddr_storage storage;
+	// struct sockaddr_storage storage;
 	char* ip = "127.0.0.1";
 	char* port = "51511";
     if (addrparse(ip, port, &storage) != 0){
@@ -216,7 +222,9 @@ int main( int argc, char *argv[] ){
     }
 
     // Conexão com o servidor
-    int s = socket(storage.ss_family, SOCK_STREAM, 0);
+    // int s = socket(storage.ss_family, SOCK_STREAM, 0);
+    s = socket(storage.ss_family, SOCK_STREAM, 0);
+
     if (s == -1) { logexit("socket");}
     struct sockaddr* addr = (struct sockaddr*)(&storage);
     if (connect(s, addr, sizeof(storage)) != 0){ 

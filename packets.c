@@ -12,6 +12,7 @@
 #include "filedate.h"
 
 #define BUFSZ 1024
+#define CLIENT_FILENAME "lastmod_client_fs.date"
 
 void logexit(const char *msg){
     perror(msg);
@@ -151,7 +152,7 @@ void last_mod_msg1_encode(char** msg, size_t* size){
     // Copying contents to message
     memcpy(*msg, &code, sizeof(code));
 
-    print_bytes(*msg, *size);
+    // print_bytes(*msg, *size);
 }
 
 /*
@@ -173,7 +174,7 @@ void last_mod_msg3_encode(char** msg, size_t* size){
     // Copying contents to message
     memcpy(*msg, &code, sizeof(code));
 
-    print_bytes(*msg, *size);
+    // print_bytes(*msg, *size);
 }
 
 /*
@@ -206,7 +207,7 @@ void last_mod_msg2_encode(const char* path, char** msg, size_t* size){
     memcpy(*msg, &code, sizeof(code));
     memcpy(*msg+sizeof(code), &date, sizeof(date));
 
-    print_bytes(*msg, *size);
+    // print_bytes(*msg, *size);
 }
 
 /*
@@ -216,9 +217,9 @@ Returns enconded date.
 time_t last_mod_msg2_decode(char* msg){
     u_int16_t otherint;
     time_t time;
-    print_bytes((msg+sizeof(otherint)), sizeof(time));
+    // print_bytes((msg+sizeof(otherint)), sizeof(time));
     memcpy(&time, msg+sizeof(otherint), sizeof(time));
-    printf("Last modified time: %s\n", ctime(&time));
+    printf("Last modified time: %s", ctime(&time));
     return time;
 }
 
@@ -239,7 +240,7 @@ void send_file(int* socket_ptr, const char* filename){
     int nread;
     // Read BUFSZ blocks of 1 byte
     while( 0 < (nread = fread(buf, 1, BUFSZ, ptr))){
-        print_bytes(buf, BUFSZ);
+        // print_bytes(buf, BUFSZ);
         printf("read: %i\n", nread);
 
         size_t count = send(s, buf, nread, 0);
@@ -307,3 +308,99 @@ void recv_file(int* socket_ptr, const char* filename){
 
 }
 
+/*
+Sends a message with code 1 through socket
+*/
+void last_mod_msg1_send(int* socket_ptr){
+    // Creates msg1
+    // Derreference socket pointer in order to use it
+    int s = *socket_ptr;
+
+    // Create buffer and set it to zero
+    char buf[BUFSZ];
+    memset(buf, 0, BUFSZ);
+
+    // Enconde message and copy it to buffer
+    char *msg = NULL; 
+    size_t size;
+    last_mod_msg1_encode(&msg, &size);
+    memcpy(buf, msg, strlen(msg));
+
+    // Send it
+    size_t count = send(s, buf, size, 0);
+    printf("[log] sent: %li\n",count);
+    if (count != strlen(buf)){ logexit("send");}
+}
+
+/*
+Sends a message with code 3 through socket
+*/
+void last_mod_msg3_send(int* socket_ptr){
+    // Creates msg1
+    // Derreference socket pointer in order to use it
+    int s = *socket_ptr;
+
+    // Create buffer and set it to zero
+    char buf[BUFSZ];
+    memset(buf, 0, BUFSZ);
+
+    // Enconde message and copy it to buffer
+    char *msg = NULL; 
+    size_t size;
+    last_mod_msg3_encode(&msg, &size);
+    memcpy(buf, msg, strlen(msg));
+
+    // Send it
+    size_t count = send(s, buf, size, 0);
+    printf("[log] sent: %li\n",count);
+    if (count != strlen(buf)){ logexit("send");}
+}
+
+/*
+Updates the file which holds file hierarchy, if needed.
+The updated version will come from server
+*/
+void update_if_needed(int* socket_ptr){
+    // Send msg1
+    last_mod_msg1_send(socket_ptr);
+
+
+    // Receive message
+    char buf[BUFSZ];
+    int s = *socket_ptr;
+    memset(buf, 0, BUFSZ);
+    size_t count = recv(s, buf, BUFSZ, 0);
+    // print_bytes(buf, count);
+    uint16_t code = msg_code(buf);
+    printf("[msg] code: %i\n", code);
+    if (code == 2){
+        // Get date sent from server
+        time_t server_last_mod_date = last_mod_msg2_decode(buf);
+        printf("Last modified time (server): %s", ctime(&server_last_mod_date));
+        
+        // Get client last modified date
+        time_t client_last_mod_date;
+
+        if(access(CLIENT_FILENAME, F_OK ) == 0){
+            // file exists
+            client_last_mod_date = getDate("lastmod_client.date");
+            printf("Last modified time (client): %s", ctime(&client_last_mod_date));
+        }else{
+            // file doesn't exist
+            // we'll need to update, so just make the variable smaller so
+            // we are caught in next if clause 
+            client_last_mod_date = server_last_mod_date - 1;
+        }
+
+        if (client_last_mod_date < server_last_mod_date){
+            printf("We need to update\n");
+            last_mod_msg3_send(&s);
+            recv_file(&s, "file_recv.txt");
+            updateDate(CLIENT_FILENAME, server_last_mod_date);
+        }else{
+            printf("No update needed\n");
+        }
+    }else{
+        printf("Couldn't get last modified date from server");
+    }
+}

@@ -28,7 +28,6 @@ void last_mod_msg2_send(int* socket_ptr, const char* filename){
     // Creates msg1
     // Derreference socket pointer in order to use it
     int s = *socket_ptr;
-    printf("Aqui0\n");
 
     // Create buffer and set it to zero
     char buf[BUFSZ];
@@ -37,7 +36,6 @@ void last_mod_msg2_send(int* socket_ptr, const char* filename){
     // Enconde message and copy it to buffer
     char *msg = NULL; 
     size_t size;
-    printf("Aqui\n");
     last_mod_msg2_encode(SERVER_FILENAME, &msg, &size);
     print_bytes(msg, size);
     memcpy(buf, msg, size);

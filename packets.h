@@ -29,5 +29,11 @@ void recv_file(int* socket_ptr, const char* filename);
 uint16_t msg_code(char* msg);
 void print_bytes(char* bytearray, size_t size);
 
+/* Client functions */
+void last_mod_msg1_send(int* socket_ptr);
+void last_mod_msg3_send(int* socket_ptr);
+void update_if_needed(int* socket_ptr);
+
 #endif /* PACKETS */
+
 
