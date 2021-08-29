@@ -145,7 +145,9 @@ static int do_getattr(const char *path, struct stat *st){
 		// We have local changes that must be sent to server
 		// We'll assume no concurrent modifications are made
     	printf( "[getattr] Local changes must be sent to server\n" );
-		// changed_but_not_in_server = false
+		hard_disk_send(&s);
+    	printf( "[getattr] Sent\n" );
+		changed_but_not_in_server = false;
 	}
 
 	return 0;

@@ -1,4 +1,5 @@
 #include "packets.h"
+#include "filedate.h"
 
 #include <pthread.h>
 #include <stdio.h>
@@ -57,6 +58,7 @@ void* client_thread(void *data) {
     printf("[log] connection from %s\n", caddrstr);
 
     while(1){
+        FILE *fptr;
         char buf[BUFSZ];
         memset(buf, 0, BUFSZ);
         size_t count = recv(cdata->csock, buf, BUFSZ - 1, 0);
@@ -71,6 +73,32 @@ void* client_thread(void *data) {
             // printf("[msg] code: %i\n", code);
         }else if(code == 3){
             send_file(&(cdata->csock), SERVER_HD_FILENAME);
+        }else if(code == 6){
+	        // fptr = fopen(SERVER_HD_FILENAME, "wb");
+            printf("[log] Receiving file %s\n", SERVER_HD_FILENAME);
+            recv_file(&(cdata->csock), SERVER_HD_FILENAME);
+        }else if(code == 7){
+            time_t client_last_mod_date = last_mod_msg2_decode(buf);
+            printf("Last modified time (client): %s", ctime(&client_last_mod_date));
+            time_t server_last_mod_date = getDate(SERVER_MOD_FILENAME);
+            printf("Last modified time (server): %s", ctime(&server_last_mod_date));
+            updateDate(SERVER_MOD_FILENAME, client_last_mod_date);
+        }else if (code == 8){
+            // printf("[log] Receiving file %s\n", SERVER_HD_FILENAME);
+            // char buf[BUFSZ];
+            // memset(buf, 0, BUFSZ);
+            // size_t count = recv(cdata->csock, buf, BUFSZ - 1, 0);
+            // char* filebuf;
+            // int filebuf_size;
+            // file_packet_decode(buf, count, &filebuf, &filebuf_size);
+            // if (strcmp(filebuf, "DONE") == 0){
+            //     printf("We must break\n");
+            //     printf("Closing now\n");
+            //     fclose(fptr);
+            //     exit(1);
+            // }else{
+            //     int nread = fwrite(filebuf, 1, filebuf_size, fptr); 
+            // }
         }
 
 

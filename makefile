@@ -1,4 +1,4 @@
-CFLAGS = -D_FILE_OFFSET_BITS=64
+CFLAGS = -D_FILE_OFFSET_BITS=64 
 
 all:
 	gcc -Wall -c packets.c
@@ -9,7 +9,7 @@ all:
 
 	
 	gcc ds_manip.c -c -o ds_manip.o
-	gcc -Wall ds_manip.o filedate.o packets.o ssfs.c `pkg-config fuse --cflags --libs` $(CFLAGS) -o ssfs  
+	gcc -Wno-unused-variable -Wall ds_manip.o filedate.o packets.o ssfs.c `pkg-config fuse --cflags --libs` $(CFLAGS) -o ssfs  
 	@echo 'To Mount: ./ssfs -f [mount point]'
 
 clean:
