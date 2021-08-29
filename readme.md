@@ -67,6 +67,9 @@ na máquina e conferir o IP com o formato 10.10.10.x que lhe foi atribuído. Ver
 
 em uma máquina e na outra (obviamente trocando os IP's correspondentes).
 
+# Persistência
+Como a chamada *getattr* é feita a todo momento, ela é o local ideal para fazer checagem de atualização do disco e também para enviar atualizações para o servidor.
+
 # Referências
 [Writing a Simple Filesystem Using FUSE in C (Tutorial pt.1)](https://www.maastaar.net/fuse/linux/filesystem/c/2016/05/21/writing-a-simple-filesystem-using-fuse/)  
 [Writing Less Simple, Yet Stupid Filesystem Using FUSE in C (Tutorial pt.2)](https://www.maastaar.net/fuse/linux/filesystem/c/2019/09/28/writing-less-simple-yet-stupid-filesystem-using-FUSE-in-C/)  
