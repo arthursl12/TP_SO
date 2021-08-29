@@ -1,5 +1,7 @@
 #define FUSE_USE_VERSION 30
 #define BUFSZ 1024
+#define CLIENT_MOD_FILENAME "lastmod_client.date"
+#define CLIENT_HD_FILENAME "harddisk_client.dat"
 
 #include <fuse.h>
 #include <stdio.h>
@@ -11,6 +13,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sys/socket.h>
+#include <stdbool.h>
 
 #include "serverfs.h"
 #include "ds_manip.h"
@@ -18,7 +21,7 @@
 /* Client socket */
 int s;
 struct sockaddr_storage storage;
-
+bool changed_but_not_in_server;
 /* Based on tutorials:
 https://www.maastaar.net/fuse/linux/filesystem/c/2016/05/21/writing-a-simple-filesystem-using-fuse/
 https://www.maastaar.net/fuse/linux/filesystem/c/2019/09/28/writing-less-simple-yet-stupid-filesystem-using-FUSE-in-C/
@@ -76,12 +79,21 @@ Returns 0 on success, -ENOENT when it doesn't exist
 */
 static int do_getattr(const char *path, struct stat *st){
     printf( "[getattr] Called\n" );
-	printf( "[getattr] Getting update, if needed\n" );
-	update_if_needed(&s);
+	if (!changed_but_not_in_server){
+		// No local changes, just update from server
+    	printf( "[getattr] Getting update, if needed\n" );
+		update_if_needed(&s);
+	}else{
+		// We have local changes that must be sent to server
+		// We'll assume no concurrent modifications are made
+    	printf( "[getattr] Local changes must be sent to server\n" );
+	}
+
+	// Get attributes
 	printf( "\tAttributes of %s requested\n", path );
 
 	FILE *fptr;
-	fptr = fopen("Harddisk.dat", "rb+");
+	fptr = fopen(CLIENT_HD_FILENAME, "rb+");
 
     // Define some stat attributes
 	st->st_uid = getuid();      // Owner of the file (current user)
@@ -111,6 +123,7 @@ static int do_getattr(const char *path, struct stat *st){
 		return -ENOENT;
 	}
 
+	// Save in harddisk file
     fseek(fptr, 0, SEEK_SET);
 	fwrite(&dir_list, sizeof(dir_list), 1, fptr);
     fseek(fptr, sizeof(dir_list), SEEK_CUR);
@@ -124,6 +137,17 @@ static int do_getattr(const char *path, struct stat *st){
 	fseek(fptr, sizeof(curr_file_idx) ,SEEK_CUR);
 	fwrite(&curr_file_content_idx, sizeof(curr_file_content_idx), 1, fptr);
 	fclose(fptr);
+
+	// Update this file if needed
+	if (!changed_but_not_in_server){
+    	printf( "[getattr] We've just updated our harddisk\n" );
+	}else{
+		// We have local changes that must be sent to server
+		// We'll assume no concurrent modifications are made
+    	printf( "[getattr] Local changes must be sent to server\n" );
+		// changed_but_not_in_server = false
+	}
+
 	return 0;
 }
 
@@ -222,7 +246,8 @@ Returns -1 if file is not found
 static int do_read(const char *path, char *buffer, size_t size, 
 				   off_t offset, struct fuse_file_info *fi ){
 
-	int file_idx = get_file_index(path);
+	printf( "[read] Called to read %s\n", path);
+	int file_idx = get_file_index( path );
 	if (file_idx == -1)
 		return -1;
 
@@ -237,9 +262,11 @@ Creates a new directory with given path
 Returns 0 on sucess.
 */
 static int do_mkdir(const char *path, mode_t mode){
+	printf( "[mkdir] Called\n" );
 	path++;
-	add_dir(path);
-	
+	add_dir( path );
+	printf( "[mkdir] Folder %s created sucessfully \n", path);
+	changed_but_not_in_server = true;
 	return 0;
 }
 
@@ -250,9 +277,11 @@ Returns 0 on sucess.
 static int do_mknod( const char *path, mode_t mode, dev_t rdev ){
 	// mode specifies the permission bits and type of the new file
 	// rdev should be specified if the new file is a device file
+	printf( "[mknod] Called\n" );
 	path++;
-	add_file(path);
-	
+	add_file( path );
+	printf( "[mknod] File %s created sucessfully \n", path);
+	changed_but_not_in_server = true;
 	return 0;
 }
 
@@ -262,8 +291,10 @@ Returns the number of written bytes
 */
 static int do_write(const char *path, const char *buffer, 
 					size_t size, off_t offset, struct fuse_file_info *info){
-	write_to_file(path, buffer);
-	
+	printf( "[write] Called\n");
+	write_to_file( path, buffer );
+	printf( "[write] Written to file %s sucessfully \n", path);
+	changed_but_not_in_server = true;
 	return size;
 }
 
@@ -279,8 +310,19 @@ static struct fuse_operations operations = {
 };
 
 int main( int argc, char *argv[] ){
+	// Harddisk creation if it doesn't exist    
+    if(access(CLIENT_HD_FILENAME, F_OK ) == 0){
+        // file exists
+    }else{
+        // file doesn't exist, we'll create a blank one
+        FILE *fptr;
+	    fptr = fopen(CLIENT_HD_FILENAME, "w");
+        fclose(fptr);
+    }
+
+	// Harddisk initialization in memory
 	FILE *fptr;
-	fptr = fopen("Harddisk.dat", "rb+");
+	fptr = fopen(CLIENT_HD_FILENAME, "rb+");
 
 	if(fptr == NULL){
 		printf("\n Error opening harddisk file\n");
