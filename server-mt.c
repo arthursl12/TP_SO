@@ -72,11 +72,11 @@ void* client_thread(void *data) {
             // printf("Last modified time (client): %s\n", ctime(&client_last_date));
             // printf("[msg] code: %i\n", code);
         }else if(code == 3){
-            send_file(&(cdata->csock), SERVER_HD_FILENAME);
+            // send_file(&(cdata->csock), SERVER_HD_FILENAME);
         }else if(code == 6){
 	        // fptr = fopen(SERVER_HD_FILENAME, "wb");
-            printf("[log] Receiving file %s\n", SERVER_HD_FILENAME);
-            recv_file(&(cdata->csock), SERVER_HD_FILENAME);
+            // printf("[log] Receiving file %s\n", SERVER_HD_FILENAME);
+            // recv_file(&(cdata->csock), SERVER_HD_FILENAME);
         }else if(code == 7){
             time_t client_last_mod_date = last_mod_msg2_decode(buf);
             printf("Last modified time (client): %s", ctime(&client_last_mod_date));
@@ -102,11 +102,11 @@ void* client_thread(void *data) {
         }
 
 
-        sprintf(buf, "remote endpoint: %.1000s\n", caddrstr);
-        count = send(cdata->csock, buf, strlen(buf) + 1, 0);
-        if (count != strlen(buf) + 1) {
-            logexit("send");
-        }
+        // sprintf(buf, "remote endpoint: %.1000s\n", caddrstr);
+        // count = send(cdata->csock, buf, strlen(buf) + 1, 0);
+        // if (count != strlen(buf) + 1) {
+        //     logexit("send");
+        // }
     }
     close(cdata->csock);
     pthread_exit(EXIT_SUCCESS);
