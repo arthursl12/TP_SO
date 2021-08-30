@@ -141,11 +141,12 @@ static int do_getattr(const char *path, struct stat *st){
 	// Update this file if needed
 	if (!changed_but_not_in_server){
     	printf( "[getattr] We've just updated our harddisk\n" );
+		changed_but_not_in_server = false;
 	}else{
 		// We have local changes that must be sent to server
 		// We'll assume no concurrent modifications are made
     	printf( "[getattr] Local changes must be sent to server\n" );
-		hard_disk_send(&s);
+		// hard_disk_send(&s);
     	printf( "[getattr] Sent\n" );
 		changed_but_not_in_server = false;
 	}
@@ -376,7 +377,7 @@ int main( int argc, char *argv[] ){
 
 	// Client socket initialization
 	// struct sockaddr_storage storage;
-	char* ip = "127.0.0.1";
+	char* ip = "10.10.10.5";
 	char* port = "51511";
     if (addrparse(ip, port, &storage) != 0){
         logexit("ipport");

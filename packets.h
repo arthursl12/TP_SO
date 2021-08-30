@@ -27,9 +27,9 @@ void hard_disk_req_msg3_encode(char** msg, size_t* size);
 // void recv_file(int* socket_ptr, const char* filename);
 
 void hard_disk_send_msg6_encode(char** msg, size_t* size);
-void hard_disk_send(int* socket_ptr);
-void file_packet_encode(char* buf, int bufsize, char** msg, size_t* size);
-void file_packet_decode(char* msg, int size, char** buf, int* bufsize);
+// void hard_disk_send(int* socket_ptr);
+// void file_packet_encode(char* buf, int bufsize, char** msg, size_t* size);
+// void file_packet_decode(char* msg, int size, char** buf, int* bufsize);
 
 uint16_t msg_code(char* msg);
 void print_bytes(char* bytearray, size_t size);
